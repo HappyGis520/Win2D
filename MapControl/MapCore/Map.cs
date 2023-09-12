@@ -93,7 +93,7 @@ namespace MapControl
         /// <summary>
         /// 缩放层级
         /// </summary>
-        public int ZoomLevel
+        public float ZoomLevel
         {
             get
             {
@@ -105,7 +105,7 @@ namespace MapControl
 
             }
         }
-        private int _ZoomLevel = 3;
+        private float _ZoomLevel = 3;
         /*------------------------------------------------------------地图相关参数-----------------------------------------------*/
         /// <summary>
         /// 地图世界坐标范围
@@ -142,14 +142,8 @@ namespace MapControl
         public WorldCoordinateLine[] Lines;
         public WorldCoordinateRectangle[] Rectangles;
 
-        public Map(int viewPixelWidth,int viewPixelHeight)
+        public Map()
         {
-            _viewPixelHeight = viewPixelHeight;       //视图的宽度（一般是ImageBox)
-            _ViewPixelWidth = viewPixelWidth;
-
-            _MapImageWidthPixels = viewPixelWidth;    //初始化地图图片的宽度，同视图窗口一致（一般是ImageBox)
-            _MapImageHeightPixels = viewPixelHeight; 
-
             Points = new WorldCoordinatePoint[100000];
             Lines = new WorldCoordinateLine[100000];
             ZoomLevel = 1;
@@ -235,8 +229,6 @@ namespace MapControl
 
             return new WorldCoordinateRectangle(topLeft, bottomRight);
         }
-
-
         /// <summary>
         ///地图缩放至指定像素范围
         /// </summary>
@@ -263,6 +255,8 @@ namespace MapControl
             PixelsPerWorldUnit = pixelPerWorldUnit;
 
             _ViewCenterInMapXY = MapImagePixelXYToWorldXY(ViewCenterInMapImageXY);
+            _ViewBoundInMapImage = new PixelCoordinateRectangle(new PixelCoordinatePoint(_ViewCenterInMapImageXY.PixelX - _ViewPixelWidth / 2, _ViewCenterInMapImageXY.PixelY-_viewPixelHeight/2),
+                new PixelCoordinatePoint(_ViewCenterInMapImageXY.PixelX + _ViewPixelWidth / 2, _ViewCenterInMapImageXY.PixelY + _viewPixelHeight / 2));
             return true;
         }
         /// <summary>
@@ -281,17 +275,6 @@ namespace MapControl
 
 
         /// <summary>
-        /// 更新地图范围
-        /// </summary>
-        public void UpdateMapBound()
-        {
-            _MapWorldXYBounds = CalculateMapWorldXYBound();                                
-            var map = MapWorldBoundToMapImagePixelBound(_MapWorldXYBounds);
-            _MapImageWidthPixels = (int)map.Width;
-            _MapImageHeightPixels = (int)map.Height;
-            ViewCenterInMapImageXY = MapWorldXYToMapImagePixel(_ViewCenterInMapXY);
-        }
-        /// <summary>
         /// 地图的世界坐标范围转换成地图图片像素坐标范围
         /// </summary>
         /// <param name="worldRect"></param>
@@ -304,8 +287,8 @@ namespace MapControl
 
             double worldWidth = _MapWorldXYBounds.Width;            //地图横向跨度
             double worldHeight = _MapWorldXYBounds.Width;           //地图纵向跨度
-            var mapImagePixelWidth = _MapImageWidthPixels * ZoomLevel;        //地图全图图片像素宽度
-            var mapImagePixelHeight = _MapImageHeightPixels * ZoomLevel;      //地图全图图片像素高度
+            var mapImagePixelWidth =(int) _MapImageWidthPixels * ZoomLevel;        //地图全图图片像素宽度
+            var mapImagePixelHeight = (int)_MapImageHeightPixels * ZoomLevel;      //地图全图图片像素高度
 
 
             double pixelsPerWorldUnitX = mapImagePixelWidth / worldWidth;                                 //横向每个世界单位对应的像素数
@@ -319,7 +302,7 @@ namespace MapControl
 
             return new PixelCoordinateRectangle(
                 new PixelCoordinatePoint(0,0),
-                new PixelCoordinatePoint(mapImagePixelWidth, mapImagePixelHeight)
+                new PixelCoordinatePoint((int)mapImagePixelWidth, (int)mapImagePixelHeight)
             ); 
         }
         /// <summary>
@@ -342,28 +325,45 @@ namespace MapControl
             return new PixelCoordinatePoint(pixelX, pixelY);
         }
 
-
+        public bool ZoomIn()
+        {
+           return  ZoomAtViewCenter(ZoomLevel*0.5f);
+        }
+        public bool ZoomOut()
+        {
+           return ZoomAtViewCenter(ZoomLevel * 1.5f);
+        }
 
         /// <summary>
         /// 以视图为中心缩放
         /// </summary>
         /// <param name="zoomLevel"></param>
         /// <returns></returns>
-        public bool ZoomAtViewCenter(int zoomLevel)
+        public bool ZoomAtViewCenter(float zoomLevel)
         {
-            var preZoomLevel = zoomLevel;
-            _MapImageWidthPixels = _MapImageWidthPixels * zoomLevel / preZoomLevel;
-            _MapImageHeightPixels = _MapImageHeightPixels * zoomLevel / preZoomLevel; 
+            if(zoomLevel<1||zoomLevel>10)
+            {
+                return false;
+            }
+            var preZoomLevel = ZoomLevel;
+            _MapImageWidthPixels =(int)( _MapImageWidthPixels * zoomLevel / preZoomLevel);
+            _MapImageHeightPixels = (int)(_MapImageHeightPixels * zoomLevel / preZoomLevel);
+
+
+            double pixelsPerWorldUnitX = _MapImageWidthPixels / _MapWorldXYBounds.Width;                                 //横向每个世界单位对应的像素数
+            double pixelsPerWorldUnitY = _MapImageHeightPixels / _MapWorldXYBounds.Height;                               //纵向每个世界单位对应的像素数
+                                                                                                                         //为了画下所有的图形，比例使用较小的值; 这样地图填充区域，是一个小于或等于视图大小的矩形
+            var pixelPerWorldUnit = pixelsPerWorldUnitX > pixelsPerWorldUnitY ? pixelsPerWorldUnitY : pixelsPerWorldUnitX;//转换比例
+            PixelsPerWorldUnit = pixelPerWorldUnit;
+
+
+            ViewCenterInMapImageXY = MapWorldXYToMapImagePixel(_ViewCenterInMapXY);//视图中心的世界坐标不变，转换成地图图片上的像素坐标
+
+            _ViewBoundInMapImage = new PixelCoordinateRectangle(new PixelCoordinatePoint(_ViewCenterInMapImageXY.PixelX - _ViewPixelWidth / 2, _ViewCenterInMapImageXY.PixelY - _viewPixelHeight / 2),
+                new PixelCoordinatePoint(_ViewCenterInMapImageXY.PixelX + _ViewPixelWidth / 2, _ViewCenterInMapImageXY.PixelY + _viewPixelHeight / 2));
+
             ZoomLevel = zoomLevel;
-            var map = MapWorldBoundToMapImagePixelBound(_MapWorldXYBounds);
-            _MapImageWidthPixels =(int) map.Width;
-            _MapImageHeightPixels = (int)map.Height;
-            ViewCenterInMapImageXY = MapWorldXYToMapImagePixel(_ViewCenterInMapXY);
-            var leftx   = ViewCenterInMapImageXY.PixelX - _ViewPixelWidth / 2;
-            var rightX  = ViewCenterInMapImageXY.PixelX + _ViewPixelWidth / 2;
-            var topY    = ViewCenterInMapImageXY.PixelY - _viewPixelHeight / 2;
-            var bottomY = ViewCenterInMapImageXY.PixelY + _viewPixelHeight / 2;
-            _ViewBoundInMapImage = new PixelCoordinateRectangle(new PixelCoordinatePoint(leftx, topY), new PixelCoordinatePoint(rightX, bottomY));
+
             return true;
         }
         //0--------------------------------------------------------------------------------------

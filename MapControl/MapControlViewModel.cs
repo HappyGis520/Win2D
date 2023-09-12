@@ -1,5 +1,6 @@
 ﻿using Microsoft.Graphics.Canvas;
 using Microsoft.UI;
+using Microsoft.UI.Xaml.Controls;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -57,8 +58,11 @@ namespace MapControl
             var file = Path.Combine(Environment.CurrentDirectory, "MapControl.log");  //在当前工作目录下创建日志文件
             _Logger = new MapLogger(file);
             BindPictureBoxEvent();
-            InitionMapControl();
+            _Map = new Map();
             FillDrawData(_PictureBox.Width, _PictureBox.Height, 0.4f, 0.25f, 0.125f, 100000, out _CurDrawGeoSize, EnumGeometryType.Point, true);
+
+            _Map.ZoomToPixelBound(_PictureBox.Width, _PictureBox.Height);
+            StartDrawMap();
         }
 
         #region 鼠标事件
@@ -72,6 +76,19 @@ namespace MapControl
             _PictureBox.MouseMove += PictureBox1_MouseMove;
             _PictureBox.MouseUp += PictureBox1_MouseUp;
             _PictureBox.SizeChanged += PictureBox_SizeChanged;
+            _PictureBox.MouseWheel += _PictureBox_MouseWheel;
+        }
+
+        private void _PictureBox_MouseWheel(object? sender, MouseEventArgs e)
+        {
+           if(e.Delta>0)
+            {
+                _Map.ZoomIn();
+            }
+            else
+            {
+                _Map.ZoomOut();
+            }
         }
 
         private void PictureBox_SizeChanged(object? sender, EventArgs e)
@@ -107,9 +124,9 @@ namespace MapControl
         }
         #endregion
 
-        private void InitionMapControl()
+        private void StartDrawMap()
         {
-            _Map = new Map(_PictureBox.Width,_PictureBox.Height);
+
             _Logger.Log(MapLogLevel.Info, "图片控件加载完成");
             _UpdateBitMapThread = new Thread(UpdateBitMapWork);
             _UpdateBitMapThread.Priority = ThreadPriority.Normal;
@@ -147,18 +164,21 @@ namespace MapControl
             var startTime = DateTime.Now;
             drawTime = 0;
             showTime = 0;
-            var device = CanvasDevice.GetSharedDevice();
-            _Map.ZoomToPixelBound(_PictureBox.Width, _PictureBox.Height);
-            var _bound = _Map.MapImagePixelXYBound;
-            var _DrawBound = _Map.ViewBoundInMapImage;
-            //var drawRect = new Rectangle(_DrawBound.TopLeft.PixelX, _DrawBound.TopLeft.PixelY, (int)_DrawBound.Width, (int)_DrawBound.Height);
-            if(_bound==null || _bound.Width<=0 || _bound.Height<=0)
+            
+
+            //var _MapImageBound = _Map.MapImagePixelXYBound;
+            var mapImageBound = new Rectangle(_Map.MapImagePixelXYBound.TopLeft.PixelX, _Map.MapImagePixelXYBound.TopLeft.PixelY, (int)_Map.MapImagePixelXYBound.Width, (int)_Map.MapImagePixelXYBound.Height);
+            var viewImageBound = new Rectangle(_Map.ViewBoundInMapImage.TopLeft.PixelX, _Map.ViewBoundInMapImage.TopLeft.PixelY, (int)_Map.ViewBoundInMapImage.Width, (int)_Map.ViewBoundInMapImage.Height);
+            var cutImageBound = Rectangle.Intersect(mapImageBound, viewImageBound);
+
+            if (mapImageBound==null || mapImageBound.Width<=0 || mapImageBound.Height<=0)
             {
                 return;
             }   
-            var width =(int) _bound.Width;
-            var height = (int)_bound.Height;
+            var width =(int) mapImageBound.Width;
+            var height = (int)mapImageBound.Height;
             var bitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);                //创建位图对象
+            var device = CanvasDevice.GetSharedDevice();
             using (var offscreen = new CanvasRenderTarget(device, width, height, dpi))         /*使用离离对象在屏幕外绘制图形*/
             {
                 using (var ds = offscreen.CreateDrawingSession())
@@ -206,7 +226,12 @@ namespace MapControl
                
                 System.Runtime.InteropServices.Marshal.Copy(pixelData, 0, bmpData.Scan0,pixelData.Length);
                 bitmap.UnlockBits(bmpData);
-                var img = bitmap;// bitmap.Clone(drawRect, PixelFormat.Format32bppRgb);
+                Bitmap img = bitmap;
+                if (cutImageBound.Width>0 && cutImageBound.Height>0)
+                {
+                   img = bitmap.Clone(cutImageBound, PixelFormat.Format32bppRgb);
+                }
+                
                 _PictureBox.Invoke(() =>
                 {
                     _PictureBox.Image = img;

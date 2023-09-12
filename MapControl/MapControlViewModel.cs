@@ -60,6 +60,7 @@ namespace MapControl
             InitionMapControl();
             FillDrawData(_PictureBox.Width, _PictureBox.Height, 0.4f, 0.25f, 0.125f, 100000, out _CurDrawGeoSize, EnumGeometryType.Point, true);
         }
+
         #region 鼠标事件
         private bool _isMouseDown = false;
         private bool _dragging = false;
@@ -75,8 +76,9 @@ namespace MapControl
 
         private void PictureBox_SizeChanged(object? sender, EventArgs e)
         {
-           _Map.MapWidthPixels = _PictureBox.Width;
-           _Map.MapHeightPixels = _PictureBox.Height;
+            //_Map._MapImageWidthPixels = _PictureBox.Width;
+            //_Map._MapImageHeightPixels = _PictureBox.Height;
+            _Map.ZoomToPixelBound(_PictureBox.Width, _PictureBox.Height);
         }
 
         private void PictureBox1_MouseDown(object sender, MouseEventArgs e)
@@ -95,9 +97,6 @@ namespace MapControl
             if (_dragging)
             {
                 Point change = new Point(e.X - _startPoint.X, e.Y - _startPoint.Y);
-                // 更改PictureBox的显示区域
-                //_PictureBox.Top += change.Y;
-                //_PictureBox.Left += change.X;
             }
         }
         private void PictureBox1_MouseUp(object sender, MouseEventArgs e)
@@ -107,6 +106,7 @@ namespace MapControl
             _PictureBox.Cursor = Cursors.Default;
         }
         #endregion
+
         private void InitionMapControl()
         {
             _Map = new Map(_PictureBox.Width,_PictureBox.Height);
@@ -148,10 +148,10 @@ namespace MapControl
             drawTime = 0;
             showTime = 0;
             var device = CanvasDevice.GetSharedDevice();
-            _Map.MapWidthPixels = _PictureBox.Width;
-            _Map.MapHeightPixels = _PictureBox.Height;
-            _Map.UpdateBound();
-            var _bound = _Map.CalculatePixelXYBound();
+            _Map.ZoomToPixelBound(_PictureBox.Width, _PictureBox.Height);
+            var _bound = _Map.MapImagePixelXYBound;
+            var _DrawBound = _Map.ViewBoundInMapImage;
+            //var drawRect = new Rectangle(_DrawBound.TopLeft.PixelX, _DrawBound.TopLeft.PixelY, (int)_DrawBound.Width, (int)_DrawBound.Height);
             if(_bound==null || _bound.Width<=0 || _bound.Height<=0)
             {
                 return;
@@ -164,7 +164,7 @@ namespace MapControl
                 using (var ds = offscreen.CreateDrawingSession())
                 {
                     ds.Clear(Windows.UI.Color.FromArgb(100, 255, 255, 255));//清除画布
-                    _Map.UpdateBound();
+                    //_Map.UpdateMapBound();
                     for (int i = 0; i < drawSize; i++)
                     {
                         if (_Map.Rectangles[i] == null)
@@ -172,7 +172,7 @@ namespace MapControl
                         switch (EnumGeometryType.fillrect)
                         {
                         case EnumGeometryType.Point:
-                            var p = _Map.WorldXYToPixel(_Map.Points[i]);
+                            var p = _Map.MapWorldXYToMapImagePixel(_Map.Points[i]);
                             ds.DrawCircle(p.PixelX, p.PixelY, 10, Windows.UI.Color.FromArgb(255, 123, 45, 23));
                             break;
                         case EnumGeometryType.line:
@@ -183,8 +183,8 @@ namespace MapControl
                             ds.DrawRectangle(_GeometryBufferArray[i].X, _GeometryBufferArray[i].Y, _GeometryBufferArray[i].Width, _GeometryBufferArray[i].Height, _GeometryBufferArray[i].Color);
                             break;
                         case EnumGeometryType.fillrect:
-                            var p1 = _Map.WorldXYToPixel(_Map.Rectangles[i].TopLeft);
-                            var p2 = _Map.WorldXYToPixel(_Map.Rectangles[i].BottomRight);
+                            var p1 = _Map.MapWorldXYToMapImagePixel(_Map.Rectangles[i].TopLeft);
+                            var p2 = _Map.MapWorldXYToMapImagePixel(_Map.Rectangles[i].BottomRight);
                             ds.FillRectangle((float)p1.PixelX, (float)p1.PixelY, p2.PixelX-p1.PixelX,p2.PixelY-p1.PixelY, Windows.UI.Color.FromArgb(255, 123, 45, 23));
                             break;
                         case EnumGeometryType.circle:
@@ -203,11 +203,13 @@ namespace MapControl
                 
                 var bmpData = bitmap.LockBits(new Rectangle(0, 0, width, height),    /*将像素数组复制到位图对象中*/
                                                                                      ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+               
                 System.Runtime.InteropServices.Marshal.Copy(pixelData, 0, bmpData.Scan0,pixelData.Length);
                 bitmap.UnlockBits(bmpData);
+                var img = bitmap;// bitmap.Clone(drawRect, PixelFormat.Format32bppRgb);
                 _PictureBox.Invoke(() =>
                 {
-                    _PictureBox.Image = bitmap;
+                    _PictureBox.Image = img;
                 });
 
             }
@@ -215,7 +217,6 @@ namespace MapControl
             showTime = (endTime - startTime).TotalMilliseconds;
 
          }
-
 
         #region 测试数据
         /// <summary>

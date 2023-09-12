@@ -1,0 +1,49 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Platforms>x86;x64</Platforms>
+    <RuntimeIdentifiers>win10-x86;win10-x64</RuntimeIdentifiers>
+    <WindowsPackageType>None</WindowsPackageType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="MigrationBackup\**" />
+    <Content Remove="MigrationBackup\**" />
+    <EmbeddedResource Remove="MigrationBackup\**" />
+    <None Remove="MigrationBackup\**" />
+    <Page Remove="MigrationBackup\**" />
+    <PRIResource Remove="MigrationBackup\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="AppForm.cs" />
+    <Compile Remove="AppForm.Designer.cs" />
+    <Compile Remove="LegacyResources.Designer.cs" />
+    <Compile Remove="MapCore\Line.cs" />
+    <Compile Remove="MapCore\Map.cs" />
+    <Compile Remove="MapCore\Point.cs" />
+    <Compile Remove="MapCore\Polygon.cs" />
+    <Compile Remove="MapCore\Rectangle.cs" />
+    <Compile Remove="WindowingInterop.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Remove="AppForm.resx" />
+    <EmbeddedResource Remove="LegacyResources.resx" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Graphics.Win2D" Version="1.0.5.1" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.4.230822000" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.25936-preview" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="MapCore\" />
+  </ItemGroup>
+
+</Project>

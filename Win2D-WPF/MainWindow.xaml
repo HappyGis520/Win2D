@@ -1,0 +1,19 @@
+﻿<Window x:Class="Win2D_WPF.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:win2d="clr-namespace:Microsoft.Graphics.Canvas.UI.Xaml;assembly=Microsoft.Graphics.Canvas"
+        xmlns:msUI="microfot.ui"
+        xmlns:local="clr-namespace:Win2D_WPF"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        <local:CompositionWPFControl x:Name="win2dControl" />
+        <Button Grid.Row="1" Content="test" Click="Button_Click" Width="100" Height="50"/>
+    </Grid>
+</Window>

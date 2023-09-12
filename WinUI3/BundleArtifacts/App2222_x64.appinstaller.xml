@@ -1,0 +1,2 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<AppInstaller DisplayName="App2222" IsBundle="false" Version="1.0.0.0" DisplayPublisher="AIC-wangjj" SupportedArchitectures="x64" OutputFolder="D:\Study\TEst\" Description="App2222" MinOS="10.0.17763.0" CertificateUri="file:///D://AA/App2222_1.0.0.0_x64_Debug_Test/App2222_1.0.0.0_x64_Debug.cer" PackageUri="file:///D://AA/App2222_1.0.0.0_x64_Debug_Test/App2222_1.0.0.0_x64_Debug.msix" AppInstallerFile="file:///D://AA/App2222_x64.appinstaller" LogoPath="D:\Study\App2222\Assets\StoreLogo.png" TileColor="transparent" />
